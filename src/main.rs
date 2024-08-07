@@ -247,6 +247,7 @@ pub fn new_size_selection_factory(library_factory:SequenceProviderFactory, lower
 
 /// Generate paired libraries like an Illumina sequencer
 /// TODO: read errors!
+/// 
 pub fn illumina_generate_read(library:&Box<SequenceProvider>, len_r1:usize, len_r2:usize) -> (String,String) {
     let one_fragment = library();
     match one_fragment {
@@ -254,10 +255,10 @@ pub fn illumina_generate_read(library:&Box<SequenceProvider>, len_r1:usize, len_
 
             let frag_len=one_fragment.len_bytes();
 
-            //TODO: if fragments shorter than read length, append bogus
+            //TODO: if fragments shorter than read length, append NEB adapter to the end before fragmenting; and bogus as needed
 
             let r1=one_fragment.byte_slice(0..len_r1);
-            let r2=one_fragment.byte_slice((frag_len-len_r2)..frag_len);
+            let r2=one_fragment.byte_slice((frag_len-len_r2)..frag_len); //TODO reverse complement
 
             //TODO only keep part
             return (r1.as_str().unwrap().into(), r2.as_str().unwrap().into());        
