@@ -28,9 +28,6 @@ use std::error::Error as StdError;
 
 
 
-
-
-
 /// Pick a random genome i.e. simulate a cell;
 pub fn new_cell_factory(genomes:Vec<Rope>, prob:Vec<f64>) -> SequenceProviderFactory {
     let dist = WeightedAliasIndex::new(prob).unwrap();
@@ -141,10 +138,10 @@ pub fn new_poisson_cell_factory(cell_factory:SequenceProviderFactory, lambda:f64
 pub fn new_atrandi_barcoding_factory(spc_factory:SequenceProviderFactory, atrandi_barcodes:AtrandiBarcodes) -> SequenceProviderFactory {
 
     return Box::new(move || {
-        //TODO pick a random barcode
-
+        //Pick a random barcode
         let combination_bc = atrandi_barcodes.generate_random_bc();
 
+        //Sometimes the first rounds of barcoding do not happen; ~1% of cases. Ignored here. TODO should save ground truth as well
         let bc = Rope::from(format!("{}AGGA{}ACTC{}AAGG{}T", 
             combination_bc[0],
             combination_bc[1],
@@ -159,16 +156,18 @@ pub fn new_atrandi_barcoding_factory(spc_factory:SequenceProviderFactory, atrand
             let previous_fragment = one_spc()?;
 
             //Add barcode. Should in principle add the same barcode to both sides, but likely uncommon to see the right side. We skip this to save performance
-            let mut fragment=bc.clone();
-            
-            
-            //NEB fragmentase cuts the fragment in two. Can even happen inside first barcodes --- TODO
-            fragment.append(previous_fragment);
+            let mut fragment_with_bc=bc.clone();
+            fragment_with_bc.append(previous_fragment);
+                        
+            //NEB fragmentase cuts the fragment in two. Can even happen inside the barcodes!
+            let mut rng = rand::thread_rng();        
+            let digest_len = rng.gen_range(0..fragment_with_bc.len_bytes()); //replace with better approx
+            let mut fragment_digested = Rope::from(fragment_with_bc.byte_slice(0..digest_len));
 
             //New adapter is added opposite of remaining adapter.
             //the adapter is /5Phos/GATCGGAAGAGCGTCGTGTAGGGAAAGAGTG*T
-            fragment.append(Rope::from("GATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT"));
-            return Some(fragment);
+            fragment_digested.append(Rope::from("GATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT"));
+            return Some(fragment_digested);
        });
    });
 }
